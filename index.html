@@ -138,6 +138,10 @@
   .btn-primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#042231;border:none;padding:8px 12px;border-radius:10px;cursor:pointer}
 
   .muted{color:var(--muted)}
+
+  /* skincare page specific to prevent .app style collision */
+  #skincarePage{position:relative;max-width:1100px;margin:40px auto;padding:20px;display:none;opacity:0;transform:translateY(8px);transition:all .28s ease}
+  @media(max-width:920px){ #skincarePage{margin:20px} }
 </style>
 </head>
 <body>
@@ -292,43 +296,47 @@
             </div>
           </div>
         </aside>
-       <!-- SKINCARE PAGE -->
-<section id="skincarePage" class="skincare-page" style="display:none; opacity:0; transform:translateY(8px); transition:all .28s;">
-  <div class="card" style="margin:18px; padding:18px;">
-    <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div>
-        <h1 style="margin:0">Skincare Routine</h1>
-        <div class="small">Edit rutinitas AM / PM — perubahan otomatis disimpan</div>
-      </div>
-      <div class="controls-top">
-        <button class="btn" id="backFromSkincare">⟵ Kembali</button>
-      </div>
-    </header>
-
-    <div class="container" style="grid-template-columns:1fr 1fr; gap:18px;">
-      <!-- AM Routine -->
-      <div class="card">
-        <h3 style="margin-top:0;">AM Routine</h3>
-        <div id="amList"></div>
-        <div style="margin-top:12px; display:flex; gap:8px;">
-            <input type="text" id="amInput" placeholder="Tambah step AM" />
-            <button class="btn" id="addAmStep">Tambah</button>
-        </div>
-      </div>
-
-      <!-- PM Routine -->
-      <div class="card">
-        <h3 style="margin-top:0;">PM Routine</h3>
-        <div id="pmList"></div>
-        <div style="margin-top:12px; display:flex; gap:8px;">
-            <input type="text" id="pmInput" placeholder="Tambah step PM" />
-            <button class="btn" id="addPmStep">Tambah</button>
-        </div>
       </div>
     </div>
-  </div>
-</section>
+  </main>
 
+  <!-- SKINCARE PAGE (terpisah dari .app) -->
+  <main id="skincarePage" aria-live="polite" role="main">
+    <header style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px">
+        <div>
+            <h1>Skincare Routine</h1>
+            <div class="small">Edit rutinitas AM / PM — perubahan otomatis disimpan</div>
+        </div>
+
+        <div class="controls-top">
+            <button class="btn" id="backFromSkincare">⟵ Kembali</button>
+        </div>
+    </header>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <!-- AM Routine -->
+        <div class="card">
+            <h3 style="margin-top:0;">AM Routine</h3>
+            <div id="amList"></div>
+
+            <div style="margin-top:12px; display:flex; gap:8px;">
+                <input type="text" id="amInput" placeholder="Tambah step AM" />
+                <button class="btn" id="addAmStep">Tambah</button>
+            </div>
+        </div>
+
+        <!-- PM Routine -->
+        <div class="card">
+            <h3 style="margin-top:0;">PM Routine</h3>
+            <div id="pmList"></div>
+
+            <div style="margin-top:12px; display:flex; gap:8px;">
+                <input type="text" id="pmInput" placeholder="Tambah step PM" />
+                <button class="btn" id="addPmStep">Tambah</button>
+            </div>
+        </div>
+    </div>
+  </main>
 
   <!-- MODAL OVERLAY -->
   <div id="modalOverlay" class="modal-overlay" aria-hidden="true">
@@ -344,707 +352,632 @@
   </div>
 
 <script>
-/* ----------------- Small helpers & constants ----------------- */
-const DAYS = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
-const MODE_TEMPLATES = {
-  productive: [
-    {h:5,text:'Bangun & stretching — minum air, atur niat hari.',done:false},
-    {h:6,text:'Journaling / planning — tulis 3 tugas utama.',done:false},
-    {h:7,text:'Sarapan & persiapan',done:false},
-    {h:8,text:'Belajar Pemrograman — HTML/CSS',done:false},
-    {h:9,text:'Belajar Pemrograman — Python basic',done:false},
-    {h:10,text:'Break singkat + review',done:false},
-    {h:11,text:'Project time — praktek',done:false},
-    {h:12,text:'Makan siang & istirahat',done:false},
-    {h:13,text:'Latihan JS / DOM',done:false},
-    {h:14,text:'Deep work — coding challenge',done:false},
-    {h:15,text:'Snack & istirahat mata',done:false},
-    {h:16,text:'Tugas ringan / housework',done:false},
-    {h:17,text:'Olahraga ringan',done:false},
-    {h:18,text:'Mandi & santai',done:false},
-    {h:19,text:'Makan malam',done:false},
-    {h:20,text:'Project integration — frontend/backend',done:false},
-    {h:21,text:'Debugging & commit',done:false},
-    {h:22,text:'Review & rencana besok',done:false},
-    {h:23,text:'Tidur / prepare sleep',done:false}
-  ],
-  college: [
-    {h:5,text:'Bangun + stretching',done:false},
-    {h:6,text:'Sarapan + persiapan kuliah',done:false},
-    {h:7,text:'Berangkat / siap kelas',done:false},
-    {h:8,text:'Kuliah 1',done:false},
-    {h:9,text:'Kuliah 2',done:false},
-    {h:10,text:'Istirahat',done:false},
-    {h:11,text:'Tugas / kelas tambahan',done:false},
-    {h:12,text:'Makan siang',done:false},
-    {h:13,text:'Tugas kampus',done:false},
-    {h:14,text:'Review materi',done:false},
-    {h:15,text:'Break',done:false},
-    {h:16,text:'Organisasi / kegiatan kampus',done:false},
-    {h:17,text:'Pulang / istirahat',done:false},
-    {h:18,text:'Makan malam',done:false},
-    {h:19,text:'Ngerjain tugas kuliah',done:false},
-    {h:20,text:'Belajar ulang materi',done:false},
-    {h:21,text:'Chill / skincare',done:false},
-    {h:22,text:'Me time',done:false},
-    {h:23,text:'Tidur',done:false}
-  ],
-  holiday: [
-    {h:5,text:'Bangun santai',done:false},
-    {h:6,text:'Jalan pagi / olahraga ringan',done:false},
-    {h:7,text:'Sarapan',done:false},
-    {h:8,text:'Bersih-bersih',done:false},
-    {h:9,text:'Hobi (musik/game)',done:false},
-    {h:10,text:'Chill time',done:false},
-    {h:11,text:'Masak / aktivitas ringan',done:false},
-    {h:12,text:'Makan siang',done:false},
-    {h:13,text:'Nonton / series',done:false},
-    {h:14,text:'Nap time',done:false},
-    {h:15,text:'Me time',done:false},
-    {h:16,text:'Jalan sore',done:false},
-    {h:17,text:'Snack time',done:false},
-    {h:18,text:'Makan malam',done:false},
-    {h:19,text:'Santai / main HP',done:false},
-    {h:20,text:'Hobi lagi',done:false},
-    {h:21,text:'Skincare',done:false},
-    {h:22,text:'Scroll + chill',done:false},
-    {h:23,text:'Tidur',done:false}
-  ]
-};
+document.addEventListener('DOMContentLoaded', () => {
+  /* ----------------- Constants & templates ----------------- */
+  const DAYS = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+  const MODE_TEMPLATES = {
+    productive: [
+      {h:5,text:'Bangun & stretching — minum air, atur niat hari.',done:false},
+      {h:6,text:'Journaling / planning — tulis 3 tugas utama.',done:false},
+      {h:7,text:'Sarapan & persiapan',done:false},
+      {h:8,text:'Belajar Pemrograman — HTML/CSS',done:false},
+      {h:9,text:'Belajar Pemrograman — Python basic',done:false},
+      {h:10,text:'Break singkat + review',done:false},
+      {h:11,text:'Project time — praktek',done:false},
+      {h:12,text:'Makan siang & istirahat',done:false},
+      {h:13,text:'Latihan JS / DOM',done:false},
+      {h:14,text:'Deep work — coding challenge',done:false},
+      {h:15,text:'Snack & istirahat mata',done:false},
+      {h:16,text:'Tugas ringan / housework',done:false},
+      {h:17,text:'Olahraga ringan',done:false},
+      {h:18,text:'Mandi & santai',done:false},
+      {h:19,text:'Makan malam',done:false},
+      {h:20,text:'Project integration — frontend/backend',done:false},
+      {h:21,text:'Debugging & commit',done:false},
+      {h:22,text:'Review & rencana besok',done:false},
+      {h:23,text:'Tidur / prepare sleep',done:false}
+    ],
+    college: [
+      {h:5,text:'Bangun + stretching',done:false},
+      {h:6,text:'Sarapan + persiapan kuliah',done:false},
+      {h:7,text:'Berangkat / siap kelas',done:false},
+      {h:8,text:'Kuliah 1',done:false},
+      {h:9,text:'Kuliah 2',done:false},
+      {h:10,text:'Istirahat',done:false},
+      {h:11,text:'Tugas / kelas tambahan',done:false},
+      {h:12,text:'Makan siang',done:false},
+      {h:13,text:'Tugas kampus',done:false},
+      {h:14,text:'Review materi',done:false},
+      {h:15,text:'Break',done:false},
+      {h:16,text:'Organisasi / kegiatan kampus',done:false},
+      {h:17,text:'Pulang / istirahat',done:false},
+      {h:18,text:'Makan malam',done:false},
+      {h:19,text:'Ngerjain tugas kuliah',done:false},
+      {h:20,text:'Belajar ulang materi',done:false},
+      {h:21,text:'Chill / skincare',done:false},
+      {h:22,text:'Me time',done:false},
+      {h:23,text:'Tidur',done:false}
+    ],
+    holiday: [
+      {h:5,text:'Bangun santai',done:false},
+      {h:6,text:'Jalan pagi / olahraga ringan',done:false},
+      {h:7,text:'Sarapan',done:false},
+      {h:8,text:'Bersih-bersih',done:false},
+      {h:9,text:'Hobi (musik/game)',done:false},
+      {h:10,text:'Chill time',done:false},
+      {h:11,text:'Masak / aktivitas ringan',done:false},
+      {h:12,text:'Makan siang',done:false},
+      {h:13,text:'Nonton / series',done:false},
+      {h:14,text:'Nap time',done:false},
+      {h:15,text:'Me time',done:false},
+      {h:16,text:'Jalan sore',done:false},
+      {h:17,text:'Snack time',done:false},
+      {h:18,text:'Makan malam',done:false},
+      {h:19,text:'Santai / main HP',done:false},
+      {h:20,text:'Hobi lagi',done:false},
+      {h:21,text:'Skincare',done:false},
+      {h:22,text:'Scroll + chill',done:false},
+      {h:23,text:'Tidur',done:false}
+    ]
+  };
 
-const KEY_DAYMODE = 'jadwal_pastel_daymode_v2'; // mapping day -> mode
-const KEY_DAY_PREFIX = 'jadwal_pastel_day_';   // full key: jadwal_pastel_day_Senin
+  const KEY_DAYMODE = 'jadwal_pastel_daymode_v2';
+  const KEY_DAY_PREFIX = 'jadwal_pastel_day_';
+  const KEY_TITLE = 'jadwal_pastel_title_v2';
+  const KEY_THEME = 'jadwal_pastel_theme_v2';
+  const KEY_NOTES = 'jadwal_pastel_notes_v2';
+  const KEY_WEEKLY = 'jadwal_pastel_weekly_v2';
+  const KEY_MOOD = 'jadwal_pastel_mood_v2';
 
-/* ----------------- UI elements ----------------- */
-const landing = document.getElementById('landing');
-const enterBtn = document.getElementById('enterBtn');
-const skincareBtn = document.getElementById('skincareBtn');
-const app = document.getElementById('app');
-const miniClock = document.getElementById('miniClock');
-const daysRow = document.getElementById('daysRow');
-const currentDayLabel = document.getElementById('currentDayLabel');
-
-/* ----------------- App state ----------------- */
-let currentDay = 'Senin'; // default open
-let schedule = []; // current day's schedule loaded into table
-
-/* ----------------- Landing behavior ----------------- */
-enterBtn.addEventListener('click', ()=> openApp(true));
-
-function openApp(showLandingGone = true){
-  if(showLandingGone) landing.style.display = 'none';
-  app.classList.add('visible');
-  app.style.display = 'block';
-  initializeApp();
-}
-
-function updateMiniClock(){
-  const now = new Date();
-  miniClock.textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-}
-setInterval(updateMiniClock,1000); updateMiniClock();
-
-/* ----------------- Modal ----------------- */
-const modalOverlay = document.getElementById('modalOverlay');
-const modalTitle = document.getElementById('modalTitle');
-const modalContent = document.getElementById('modalContent');
-const closeModalBtn = document.getElementById('closeModal');
-function openModal(title, html){ modalTitle.textContent = title; modalContent.innerHTML = html; modalOverlay.classList.add('show'); modalOverlay.setAttribute('aria-hidden','false'); }
-function closeModal(){ modalOverlay.classList.remove('show'); modalOverlay.setAttribute('aria-hidden','true'); }
-closeModalBtn.addEventListener('click', closeModal);
-modalOverlay.addEventListener('click', (e)=>{ if(e.target===modalOverlay) closeModal(); });
-
-
-/* ----------------- Day-mode mapping helpers ----------------- */
-function getDayModeMap(){
-  const raw = localStorage.getItem(KEY_DAYMODE);
-  if(!raw){
-    // default mapping: Senin-Jumat = college, Sabtu = productive, Minggu = holiday
-    const def = {Senin:'college',Selasa:'college',Rabu:'college',Kamis:'college',Jumat:'college',Sabtu:'productive',Minggu:'holiday'};
-    localStorage.setItem(KEY_DAYMODE, JSON.stringify(def));
-    return def;
+  /* ----------------- Safe DOM helpers ----------------- */
+  const $ = id => document.getElementById(id);
+  function safeAdd(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
+  function dayStorageKey(day){ return KEY_DAY_PREFIX + day; }
+  function getDayModeMap(){
+    const raw = localStorage.getItem(KEY_DAYMODE);
+    if(!raw){
+      const def = {Senin:'college',Selasa:'college',Rabu:'college',Kamis:'college',Jumat:'college',Sabtu:'productive',Minggu:'holiday'};
+      localStorage.setItem(KEY_DAYMODE, JSON.stringify(def));
+      return def;
+    }
+    try{ return JSON.parse(raw); } catch(e){ return {}; }
   }
-  try{ return JSON.parse(raw); } catch(e){ return {}; }
-}
-function setDayMode(day, mode){
-  const map = getDayModeMap();
-  map[day] = mode;
-  localStorage.setItem(KEY_DAYMODE, JSON.stringify(map));
-}
+  function setDayMode(day, mode){ const map = getDayModeMap(); map[day]=mode; localStorage.setItem(KEY_DAYMODE, JSON.stringify(map)); }
 
-/* ----------------- Per-day schedule storage ----------------- */
-function dayStorageKey(day){ return KEY_DAY_PREFIX + day; }
-function saveCurrentDaySchedule(){
-  if(!currentDay) return;
-  localStorage.setItem(dayStorageKey(currentDay), JSON.stringify(schedule));
-}
-function loadScheduleForDay(day){
-  const raw = localStorage.getItem(dayStorageKey(day));
-  if(raw){
-    try{ schedule = JSON.parse(raw); }
-    catch(e){ schedule = MODE_TEMPLATES[getDayModeMap()[day] || 'productive'].map(x=>({...x})); }
-  } else {
-    // if no saved schedule, use template from day mode
+  /* ----------------- Grab elements (safe) ----------------- */
+  const landing = $('landing');
+  const enterBtn = $('enterBtn');
+  const skincareBtn = $('skincareBtn');
+  const app = $('app');
+  const miniClock = $('miniClock');
+  const daysRow = $('daysRow');
+  const currentDayLabel = $('currentDayLabel');
+  const tbody = document.querySelector('#scheduleTable tbody');
+  const titleEl = $('title');
+  const themeBtn = $('themeBtn');
+  const pomTimeEl = $('pomTime');
+  const modalOverlay = $('modalOverlay');
+  const modalTitle = $('modalTitle');
+  const modalContent = $('modalContent');
+  const closeModalBtn = $('closeModal');
+
+  /* ----------------- App state ----------------- */
+  let currentDay = 'Senin';
+  let schedule = [];
+  let lastNotifiedIdx = null;
+
+  /* ----------------- Modal open/close ----------------- */
+  function openModal(title, html){
+    if(!modalOverlay || !modalTitle || !modalContent) return;
+    modalTitle.textContent = title;
+    modalContent.innerHTML = html;
+    modalOverlay.classList.add('show');
+    modalOverlay.setAttribute('aria-hidden','false');
+  }
+  function closeModal(){ if(!modalOverlay) return; modalOverlay.classList.remove('show'); modalOverlay.setAttribute('aria-hidden','true'); }
+  safeAdd(closeModalBtn,'click', closeModal);
+  safeAdd(modalOverlay,'click', (e)=>{ if(e.target===modalOverlay) closeModal(); });
+
+  /* ----------------- Mini clock ----------------- */
+  function updateMiniClock(){ if(!miniClock) return; const now = new Date(); miniClock.textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`; }
+  setInterval(updateMiniClock,1000); updateMiniClock();
+
+  /* ----------------- Day UI ----------------- */
+  function renderDaysRow(){
+    if(!daysRow) return;
+    daysRow.innerHTML = '';
     const map = getDayModeMap();
-    const mode = map[day] || 'productive';
-    schedule = MODE_TEMPLATES[mode].map(x=>({...x}));
-    // save implicitly so user sees it
-    localStorage.setItem(dayStorageKey(day), JSON.stringify(schedule));
+    DAYS.forEach(d => {
+      const btn = document.createElement('button');
+      btn.className = 'day-btn' + (d===currentDay ? ' active' : '');
+      btn.textContent = d + ' • ' + (map[d] === 'college' ? '📘' : map[d] === 'productive' ? '💼' : '🏖');
+      btn.addEventListener('click', ()=> {
+        currentDay = d;
+        currentDayLabel && (currentDayLabel.textContent = 'Hari: ' + d);
+        loadScheduleForDay(currentDay);
+        renderTable();
+        renderDaysRow();
+        updateClockAndHighlight();
+      });
+      daysRow.appendChild(btn);
+    });
   }
-}
 
-/* ----------------- UI: Days row ----------------- */
-function renderDaysRow(){
-  daysRow.innerHTML = '';
-  const map = getDayModeMap();
-  DAYS.forEach(d => {
-    const btn = document.createElement('button');
-    btn.className = 'day-btn' + (d===currentDay ? ' active' : '');
-    btn.textContent = d + ' • ' + (map[d] === 'college' ? '📘' : map[d] === 'productive' ? '💼' : '🏖');
-    btn.addEventListener('click', ()=> {
-      currentDay = d;
-      currentDayLabel.textContent = 'Hari: ' + d;
-      // reload schedule for that day
-      loadScheduleForDay(currentDay);
-      renderTable();
-      renderDaysRow();
-      updateClockAndHighlight();
-    });
-    daysRow.appendChild(btn);
-  });
-}
-
-/* ----------------- Table render & interactivity ----------------- */
-const tbody = document.querySelector('#scheduleTable tbody');
-function renderTable(){
-  tbody.innerHTML = '';
-  schedule.forEach((item, idx) => {
-    const tr = document.createElement('tr');
-    tr.draggable = true;
-    tr.dataset.index = idx;
-    tr.dataset.hour = item.h;
-    if(item.done) tr.classList.add('done');
-
-    const tdDrag = document.createElement('td'); tdDrag.innerHTML = '<span class="drag-handle" aria-hidden="true">⇅</span>';
-    const tdHour = document.createElement('td'); tdHour.className = 'hour'; tdHour.textContent = String(item.h).padStart(2,'0')+':00';
-    const tdText = document.createElement('td'); tdText.className = 'task'; tdText.textContent = item.text;
-    const tdActions = document.createElement('td');
-    tdActions.innerHTML = `<div class="actions">
-      <button class="btn toggleDone">${item.done? '↺ Undo' : '✔️ Selesai'}</button>
-      <button class="btn edit">Edit</button>
-      <button class="btn del">Hapus</button>
-    </div>`;
-    tr.appendChild(tdDrag); tr.appendChild(tdHour); tr.appendChild(tdText); tr.appendChild(tdActions);
-    tbody.appendChild(tr);
-
-    // events
-    tdActions.querySelector('.toggleDone').addEventListener('click', ()=>{ schedule[idx].done = !schedule[idx].done; saveCurrentDaySchedule(); renderTable(); updateClockAndHighlight(); });
-    tdActions.querySelector('.edit').addEventListener('click', ()=> {
-      const newH = prompt('Ubah jam (0-23):', item.h); const nh = parseInt(newH);
-      if(isNaN(nh)||nh<0||nh>23){ alert('Jam tidak valid'); return; }
-      const newText = prompt('Ubah deskripsi:', item.text); if(newText===null) return;
-      schedule[idx].h = nh; schedule[idx].text = newText; schedule.sort((a,b)=>a.h-b.h); saveCurrentDaySchedule(); renderTable(); updateClockAndHighlight();
-    });
-    tdActions.querySelector('.del').addEventListener('click', ()=>{ if(confirm('Hapus kegiatan ini?')){ schedule.splice(idx,1); saveCurrentDaySchedule(); renderTable(); updateClockAndHighlight(); } });
-
-    // drag events: move entries in schedule array
-    tr.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', idx); tr.style.opacity = 0.6; });
-    tr.addEventListener('dragend', e => { tr.style.opacity = ''; });
-    tr.addEventListener('dragover', e => { e.preventDefault(); tr.style.outline = '2px dashed rgba(6,40,60,0.06)'; });
-    tr.addEventListener('dragleave', e => { tr.style.outline = ''; });
-    tr.addEventListener('drop', e => {
-      e.preventDefault(); tr.style.outline = '';
-      const from = parseInt(e.dataTransfer.getData('text/plain'));
-      const to = parseInt(tr.dataset.index);
-      if(from === to) return;
-      const it = schedule.splice(from,1)[0];
-      schedule.splice(to,0,it);
-      saveCurrentDaySchedule(); renderTable(); updateClockAndHighlight();
-    });
-  });
-}
-
-/* ----------------- Add / Export / Reset (per day) ----------------- */
-document.getElementById('addBtn').addEventListener('click', ()=>{
-  const h = parseInt(document.getElementById('addHour').value);
-  const text = document.getElementById('addText').value.trim();
-  if(isNaN(h)||h<0||h>23){ alert('Masukkan jam 0-23'); return; }
-  if(!text){ alert('Masukkan deskripsi'); return; }
-  schedule.push({h,text,done:false});
-  schedule.sort((a,b)=>a.h-b.h);
-  saveCurrentDaySchedule(); renderTable(); updateClockAndHighlight();
-  document.getElementById('addHour').value=''; document.getElementById('addText').value='';
-});
-document.getElementById('exportBtn').addEventListener('click', ()=>{
-  let csv = 'Jam,Deskripsi,Selesai, Hari\\n';
-  DAYS.forEach(day => {
+  /* ----------------- Load / Save per-day schedule ----------------- */
+  function saveCurrentDaySchedule(){ if(!currentDay) return; localStorage.setItem(dayStorageKey(currentDay), JSON.stringify(schedule)); }
+  function loadScheduleForDay(day){
+    currentDay = day;
+    if(currentDayLabel) currentDayLabel.textContent = 'Hari: ' + day;
     const raw = localStorage.getItem(dayStorageKey(day));
     if(raw){
-      try{
-        const arr = JSON.parse(raw);
-        arr.forEach(s=> csv += `${day},${String(s.h).padStart(2,'0')}:00,"${s.text.replace(/"/g,'""')}",${s.done? 'YES':'NO'}\\n`);
-      }catch(e){}
+      try{ schedule = JSON.parse(raw); }
+      catch(e){ schedule = MODE_TEMPLATES[getDayModeMap()[day] || 'productive'].map(x=>({...x})); }
+    } else {
+      const mode = getDayModeMap()[day] || 'productive';
+      schedule = MODE_TEMPLATES[mode].map(x=>({...x}));
+      localStorage.setItem(dayStorageKey(day), JSON.stringify(schedule));
+    }
+  }
+
+  /* ----------------- Render table ----------------- */
+  function renderTable(){
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    schedule.forEach((item, idx) => {
+      const tr = document.createElement('tr');
+      tr.draggable = true;
+      tr.dataset.index = idx;
+      tr.dataset.hour = item.h;
+      if(item.done) tr.classList.add('done');
+
+      const tdDrag = document.createElement('td'); tdDrag.innerHTML = '<span class="drag-handle" aria-hidden="true">⇅</span>';
+      const tdHour = document.createElement('td'); tdHour.className = 'hour'; tdHour.textContent = String(item.h).padStart(2,'0')+':00';
+      const tdText = document.createElement('td'); tdText.className = 'task'; tdText.textContent = item.text;
+      const tdActions = document.createElement('td');
+      tdActions.innerHTML = `<div class="actions">
+        <button class="btn toggleDone">${item.done? '↺ Undo' : '✔️ Selesai'}</button>
+        <button class="btn edit">Edit</button>
+        <button class="btn del">Hapus</button>
+      </div>`;
+      tr.appendChild(tdDrag); tr.appendChild(tdHour); tr.appendChild(tdText); tr.appendChild(tdActions);
+      tbody.appendChild(tr);
+
+      // events
+      const toggleBtn = tdActions.querySelector('.toggleDone');
+      const editBtn = tdActions.querySelector('.edit');
+      const delBtn = tdActions.querySelector('.del');
+      safeAdd(toggleBtn,'click', ()=>{ schedule[idx].done = !schedule[idx].done; saveCurrentDaySchedule(); renderTable(); updateClockAndHighlight(); });
+      safeAdd(editBtn,'click', ()=> {
+        const newH = prompt('Ubah jam (0-23):', item.h); const nh = parseInt(newH);
+        if(isNaN(nh)||nh<0||nh>23){ alert('Jam tidak valid'); return; }
+        const newText = prompt('Ubah deskripsi:', item.text); if(newText===null) return;
+        schedule[idx].h = nh; schedule[idx].text = newText; schedule.sort((a,b)=>a.h-b.h); saveCurrentDaySchedule(); renderTable(); updateClockAndHighlight();
+      });
+      safeAdd(delBtn,'click', ()=>{ if(confirm('Hapus kegiatan ini?')){ schedule.splice(idx,1); saveCurrentDaySchedule(); renderTable(); updateClockAndHighlight(); } });
+
+      // drag events
+      tr.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', idx); tr.style.opacity = 0.6; });
+      tr.addEventListener('dragend', e => { tr.style.opacity = ''; });
+      tr.addEventListener('dragover', e => { e.preventDefault(); tr.style.outline = '2px dashed rgba(6,40,60,0.06)'; });
+      tr.addEventListener('dragleave', e => { tr.style.outline = ''; });
+      tr.addEventListener('drop', e => {
+        e.preventDefault(); tr.style.outline = '';
+        const from = parseInt(e.dataTransfer.getData('text/plain'));
+        const to = parseInt(tr.dataset.index);
+        if(from === to) return;
+        const it = schedule.splice(from,1)[0];
+        schedule.splice(to,0,it);
+        saveCurrentDaySchedule(); renderTable(); updateClockAndHighlight();
+      });
+    });
+  }
+
+  /* ----------------- Add / Export / Reset ----------------- */
+  safeAdd($('addBtn'),'click', ()=>{
+    const h = parseInt($('addHour') && $('addHour').value);
+    const text = ($('addText') && $('addText').value || '').trim();
+    if(isNaN(h)||h<0||h>23){ alert('Masukkan jam 0-23'); return; }
+    if(!text){ alert('Masukkan deskripsi'); return; }
+    schedule.push({h,text,done:false});
+    schedule.sort((a,b)=>a.h-b.h);
+    saveCurrentDaySchedule(); renderTable(); updateClockAndHighlight();
+    if($('addHour')) $('addHour').value=''; if($('addText')) $('addText').value='';
+  });
+
+  safeAdd($('exportBtn'),'click', ()=>{
+    let csv = 'Jam,Deskripsi,Selesai, Hari\n';
+    DAYS.forEach(day => {
+      const raw = localStorage.getItem(dayStorageKey(day));
+      if(raw){
+        try{
+          const arr = JSON.parse(raw);
+          arr.forEach(s=> csv += `${day},${String(s.h).padStart(2,'0')}:00,"${s.text.replace(/"/g,'""')}",${s.done? 'YES':'NO'}\n`);
+        }catch(e){}
+      }
+    });
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'jadwal_all_days.csv'; a.click(); URL.revokeObjectURL(a.href);
+  });
+
+  safeAdd($('resetBtn'),'click', ()=>{
+    if(confirm('Reset semua hari ke template default? (Mode mapping tidak berubah)')){
+      const map = getDayModeMap();
+      DAYS.forEach(day => {
+        const mode = map[day] || 'productive';
+        localStorage.setItem(dayStorageKey(day), JSON.stringify(MODE_TEMPLATES[mode].map(x=>({...x}))));
+      });
+      loadScheduleForDay(currentDay); renderTable(); updateClockAndHighlight();
+      alert('Semua hari direset sesuai mode masing-masing.');
     }
   });
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'jadwal_all_days.csv'; a.click(); URL.revokeObjectURL(a.href);
-});
-document.getElementById('resetBtn').addEventListener('click', ()=>{
-  if(confirm('Reset semua hari ke template default? (Mode mapping tidak berubah)')){
-    // reset each day's storage to its mode template
+
+  /* ----------------- Mode buttons ----------------- */
+  safeAdd($('modeProductive'),'click', ()=> showModeDays('productive','💼 Produktif'));
+  safeAdd($('modeCollege'),'click', ()=> showModeDays('college','📘 Kuliah'));
+  safeAdd($('modeHoliday'),'click', ()=> showModeDays('holiday','🏖 Libur'));
+
+  function showModeDays(mode, title){
     const map = getDayModeMap();
-    DAYS.forEach(day => {
-      const mode = map[day] || 'productive';
+    const days = DAYS.filter(d => (map[d]||'productive') === mode);
+    let html = `<div class="small muted">Hari yang menggunakan mode <strong>${title}</strong>:</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">`;
+    days.forEach(d => html += `<button class="day-btn" data-day="${d}">${d}</button>`);
+    html += `</div><div style="margin-top:12px" class="muted">Klik hari untuk buka jadwal hari itu. Kamu bisa ubah mode tiap hari di panel "Assign Mode to Days".</div>`;
+    openModal(title, html);
+    setTimeout(()=>{
+      modalContent && modalContent.querySelectorAll('[data-day]').forEach(b => b.addEventListener('click', (e)=>{
+        const day = e.currentTarget.getAttribute('data-day');
+        closeModal();
+        currentDay = day;
+        currentDayLabel && (currentDayLabel.textContent = 'Hari: ' + day);
+        loadScheduleForDay(day);
+        renderTable();
+        renderDaysRow();
+        updateClockAndHighlight();
+      }));
+    },40);
+  }
+
+  safeAdd($('assignBtn'),'click', ()=>{
+    const day = $('assignDaySelect') && $('assignDaySelect').value;
+    const mode = $('assignModeSelect') && $('assignModeSelect').value;
+    if(!day || !mode) return alert('Pilih hari & mode');
+    setDayMode(day, mode);
+    if(confirm(`Assign mode ${mode} ke ${day}. Timpa jadwal hari ini dengan template mode? (OK = timpa, Cancel = simpan mode tanpa timpa)`)){
       localStorage.setItem(dayStorageKey(day), JSON.stringify(MODE_TEMPLATES[mode].map(x=>({...x}))));
-    });
-    // reload current day
-    loadScheduleForDay(currentDay); renderTable(); updateClockAndHighlight();
-    alert('Semua hari direset sesuai mode masing-masing.');
+    }
+    renderDaysRow();
+    alert(`${day} di-assign ke mode ${mode}`);
+  });
+
+  /* ----------------- Title & theme ----------------- */
+  if(titleEl){
+    const storedTitle = localStorage.getItem(KEY_TITLE); if(storedTitle) titleEl.textContent = storedTitle;
+    titleEl.addEventListener('blur', ()=> { localStorage.setItem(KEY_TITLE, titleEl.textContent.trim()); });
+    titleEl.addEventListener('keydown', (e)=> { if(e.key === 'Enter'){ e.preventDefault(); titleEl.blur(); } });
   }
-});
 
-/* ----------------- Mode buttons: show days using the mode ----------------- */
-document.getElementById('modeProductive').addEventListener('click', ()=> showModeDays('productive','💼 Produktif'));
-document.getElementById('modeCollege').addEventListener('click', ()=> showModeDays('college','📘 Kuliah'));
-document.getElementById('modeHoliday').addEventListener('click', ()=> showModeDays('holiday','🏖 Libur'));
-
-function showModeDays(mode, title){
-  const map = getDayModeMap();
-  const days = DAYS.filter(d => (map[d]||'productive') === mode);
-  let html = `<div class="small muted">Hari yang menggunakan mode <strong>${title}</strong>:</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">`;
-  days.forEach(d => html += `<button class="day-btn" data-day="${d}">${d}</button>`);
-  html += `</div><div style="margin-top:12px" class="muted">Klik hari untuk buka jadwal hari itu. Kamu bisa ubah mode tiap hari di panel "Assign Mode to Days".</div>`;
-  openModal(title, html);
-  setTimeout(()=>{
-    modalContent.querySelectorAll('[data-day]').forEach(b => b.addEventListener('click', (e)=>{
-      const day = e.currentTarget.getAttribute('data-day');
-      closeModal();
-      currentDay = day;
-      currentDayLabel.textContent = 'Hari: ' + day;
-      loadScheduleForDay(day);
-      renderTable();
-      renderDaysRow();
-      updateClockAndHighlight();
-    }));
-  },40);
-}
-
-/* ----------------- Assign mode to day control ----------------- */
-document.getElementById('assignBtn').addEventListener('click', ()=>{
-  const day = document.getElementById('assignDaySelect').value;
-  const mode = document.getElementById('assignModeSelect').value;
-  if(!day || !mode) return alert('Pilih hari & mode');
-  setDayMode(day, mode);
-  // initialize that day's schedule from template (but keep if user already has custom? We'll overwrite after confirm)
-  if(confirm(`Assign mode ${mode} ke ${day}. Timpa jadwal hari ini dengan template mode? (OK = timpa, Cancel = simpan mode tanpa timpa)`)){
-    localStorage.setItem(dayStorageKey(day), JSON.stringify(MODE_TEMPLATES[mode].map(x=>({...x}))));
+  function applyTheme(t){
+    if(t === 'light'){ document.documentElement.style.setProperty('--bg','#ffffff'); document.documentElement.style.setProperty('--card','rgba(255,255,255,0.95)'); localStorage.setItem(KEY_THEME,'light'); if(themeBtn) themeBtn.textContent='🌞'; }
+    else { document.documentElement.style.setProperty('--bg','#eaf6ff'); document.documentElement.style.setProperty('--card','rgba(255,255,255,0.65)'); localStorage.setItem(KEY_THEME,'pastel'); if(themeBtn) themeBtn.textContent='🌗'; }
   }
-  renderDaysRow();
-  alert(`${day} di-assign ke mode ${mode}`);
-});
+  safeAdd(themeBtn,'click', ()=> { const cur = localStorage.getItem(KEY_THEME) || 'pastel'; applyTheme(cur === 'pastel' ? 'light' : 'pastel'); });
+  // init theme
+  applyTheme(localStorage.getItem(KEY_THEME) || 'pastel');
 
-/* ----------------- Title edit & theme ----------------- */
-const titleEl = document.getElementById('title');
-const KEY_TITLE = 'jadwal_pastel_title_v2';
-titleEl.addEventListener('blur', ()=> { localStorage.setItem(KEY_TITLE, titleEl.textContent.trim()); });
-titleEl.addEventListener('keydown', (e)=> { if(e.key === 'Enter'){ e.preventDefault(); titleEl.blur(); } });
+  /* ----------------- Pomodoro ----------------- */
+  let pomDuration = 25*60, breakDuration = 5*60, pomRemaining = pomDuration, pomInterval=null, pomRunning=false;
+  function fmt(sec){ const m=Math.floor(sec/60); const s=sec%60; return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
+  function updatePom(){ if(pomTimeEl) pomTimeEl.textContent = fmt(pomRemaining); }
+  safeAdd($('startPom'),'click', ()=>{
+    if(pomRunning) return;
+    pomRunning=true;
+    pomInterval=setInterval(()=>{ pomRemaining--; updatePom(); if(pomRemaining<=0){ clearInterval(pomInterval); pomRunning=false; if(Notification.permission==='granted') new Notification("Pomodoro","Sesi selesai!"); pomRemaining = breakDuration; updatePom(); } },1000);
+  });
+  safeAdd($('pausePom'),'click', ()=>{ if(pomInterval) clearInterval(pomInterval); pomRunning=false; pomInterval=null; });
+  safeAdd($('resetPom'),'click', ()=>{ if(pomInterval) clearInterval(pomInterval); pomRunning=false; pomRemaining=pomDuration; updatePom(); });
+  updatePom();
 
-const themeBtn = document.getElementById('themeBtn');
-const KEY_THEME = 'jadwal_pastel_theme_v2';
-function applyTheme(t){
-  if(t === 'light'){ document.documentElement.style.setProperty('--bg','#ffffff'); document.documentElement.style.setProperty('--card','rgba(255,255,255,0.95)'); localStorage.setItem(KEY_THEME,'light'); themeBtn.textContent='🌞'; }
-  else { document.documentElement.style.setProperty('--bg','#eaf6ff'); document.documentElement.style.setProperty('--card','rgba(255,255,255,0.65)'); localStorage.setItem(KEY_THEME,'pastel'); themeBtn.textContent='🌗'; }
-}
-themeBtn.addEventListener('click', ()=> { const cur = localStorage.getItem(KEY_THEME) || 'pastel'; applyTheme(cur === 'pastel' ? 'light' : 'pastel'); });
+  /* ----------------- DailyNote / WeekWins / Moodly ----------------- */
+  safeAdd($('openNotes'),'click', ()=>{
+    const notes = localStorage.getItem(KEY_NOTES) || '';
+    const html = `
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="small muted">DailyNote — tulis catatan harian. Tersimpan otomatis.</div>
+        <textarea id="notesArea">${notes}</textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button id="saveNotes" class="btn-primary">Simpan</button>
+          <button id="clearNotes" class="btn">Kosongkan</button>
+        </div>
+      </div>`;
+    openModal('DailyNote', html);
+    setTimeout(()=>{ safeAdd($('saveNotes'),'click', ()=>{ localStorage.setItem(KEY_NOTES, $('notesArea').value); alert('Catatan tersimpan'); }); safeAdd($('clearNotes'),'click', ()=>{ if(confirm('Kosongkan catatan?')){ $('notesArea').value=''; localStorage.removeItem(KEY_NOTES); } }); },50);
+  });
 
-/* ----------------- Pomodoro (simple) ----------------- */
-let pomDuration = 25*60, breakDuration = 5*60, pomRemaining = pomDuration, pomInterval=null, pomRunning=false;
-const pomTimeEl = document.getElementById('pomTime');
-function fmt(sec){ const m=Math.floor(sec/60); const s=sec%60; return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
-function updatePom(){ pomTimeEl.textContent = fmt(pomRemaining); }
-document.getElementById('startPom').addEventListener('click', ()=>{
-  if(pomRunning) return;
-  pomRunning=true;
-  pomInterval=setInterval(()=>{ pomRemaining--; updatePom(); if(pomRemaining<=0){ clearInterval(pomInterval); pomRunning=false; if(Notification.permission==='granted') new Notification("Pomodoro","Sesi selesai!"); pomRemaining = breakDuration; updatePom(); } },1000);
-});
-document.getElementById('pausePom').addEventListener('click', ()=>{ if(pomInterval) clearInterval(pomInterval); pomRunning=false; pomInterval=null; });
-document.getElementById('resetPom').addEventListener('click', ()=>{ if(pomInterval) clearInterval(pomInterval); pomRunning=false; pomRemaining=pomDuration; updatePom(); });
-updatePom();
-
-/* ----------------- DailyNote / WeekWins / Moodly (same as before) ----------------- */
-const KEY_NOTES = 'jadwal_pastel_notes_v2';
-const KEY_WEEKLY = 'jadwal_pastel_weekly_v2';
-const KEY_MOOD = 'jadwal_pastel_mood_v2';
-// DailyNote
-document.getElementById('openNotes').addEventListener('click', ()=>{
-  const notes = localStorage.getItem(KEY_NOTES) || '';
-  const html = `
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <div class="small muted">DailyNote — tulis catatan harian. Tersimpan otomatis.</div>
-      <textarea id="notesArea">${notes}</textarea>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button id="saveNotes" class="btn-primary">Simpan</button>
-        <button id="clearNotes" class="btn">Kosongkan</button>
+  safeAdd($('openWeekly'),'click', ()=>{
+    const raw = localStorage.getItem(KEY_WEEKLY);
+    const list = raw ? JSON.parse(raw) : ['Selesaikan modul HTML','Push 1 project ke GitHub','Kerjakan 3 latihan JS'];
+    let itemsHtml = '';
+    list.forEach((it,i)=> itemsHtml += `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="text" data-i="${i}" value="${it}" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(6,40,60,0.06)"><button class="btn" data-del="${i}">Hapus</button></div>`);
+    const html = `<div style="display:flex;flex-direction:column;gap:12px">
+      <div class="small muted">WeekWins — ubah langsung, lalu Simpan.</div>
+      <div id="weeklyList">${itemsHtml}</div>
+      <div style="display:flex;gap:8px;justify-content:space-between;align-items:center">
+        <div><input id="newWeekly" type="text" placeholder="Tambah target baru" style="padding:8px;border-radius:8px;border:1px solid rgba(6,40,60,0.06)"></div>
+        <div style="display:flex;gap:8px">
+          <button id="addWeekly" class="btn">Tambah</button>
+          <button id="saveWeekly" class="btn-primary">Simpan</button>
+        </div>
       </div>
     </div>`;
-  openModal('DailyNote', html);
-  setTimeout(()=>{ document.getElementById('saveNotes').addEventListener('click', ()=>{ localStorage.setItem(KEY_NOTES, document.getElementById('notesArea').value); alert('Catatan tersimpan'); }); document.getElementById('clearNotes').addEventListener('click', ()=>{ if(confirm('Kosongkan catatan?')){ document.getElementById('notesArea').value=''; localStorage.removeItem(KEY_NOTES); } }); },50);
-});
-// WeekWins
-document.getElementById('openWeekly').addEventListener('click', ()=>{
-  const raw = localStorage.getItem(KEY_WEEKLY);
-  const list = raw ? JSON.parse(raw) : ['Selesaikan modul HTML','Push 1 project ke GitHub','Kerjakan 3 latihan JS'];
-  let itemsHtml = '';
-  list.forEach((it,i)=> itemsHtml += `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="text" data-i="${i}" value="${it}" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(6,40,60,0.06)"><button class="btn" data-del="${i}">Hapus</button></div>`);
-  const html = `<div style="display:flex;flex-direction:column;gap:12px">
-    <div class="small muted">WeekWins — ubah langsung, lalu Simpan.</div>
-    <div id="weeklyList">${itemsHtml}</div>
-    <div style="display:flex;gap:8px;justify-content:space-between;align-items:center">
-      <div><input id="newWeekly" type="text" placeholder="Tambah target baru" style="padding:8px;border-radius:8px;border:1px solid rgba(6,40,60,0.06)"></div>
-      <div style="display:flex;gap:8px">
-        <button id="addWeekly" class="btn">Tambah</button>
-        <button id="saveWeekly" class="btn-primary">Simpan</button>
+    openModal('WeekWins', html);
+    setTimeout(()=> {
+      const wrapper = $('weeklyList');
+      if(!wrapper) return;
+      wrapper.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', (e)=>{
+        const idx = parseInt(e.currentTarget.getAttribute('data-del'));
+        list.splice(idx,1); localStorage.setItem(KEY_WEEKLY, JSON.stringify(list)); closeModal(); $('openWeekly') && $('openWeekly').click();
+      }));
+      safeAdd($('addWeekly'),'click', ()=>{
+        const v = ($('newWeekly') && $('newWeekly').value.trim()); if(!v) return alert('Isi target dulu'); list.push(v); localStorage.setItem(KEY_WEEKLY, JSON.stringify(list)); closeModal(); $('openWeekly') && $('openWeekly').click();
+      });
+      safeAdd($('saveWeekly'),'click', ()=>{
+        const inputs = wrapper.querySelectorAll('input[type="text"][data-i]'); const out=[]; inputs.forEach(inp => out.push(inp.value.trim())); localStorage.setItem(KEY_WEEKLY, JSON.stringify(out)); alert('Target disimpan'); closeModal();
+      });
+    },60);
+  });
+
+  safeAdd($('openMood'),'click', ()=>{
+    const raw = localStorage.getItem(KEY_MOOD) || '';
+    const html = `<div style="display:flex;flex-direction:column;gap:12px">
+      <div class="small muted">Moodly — pilih mood hari ini & catatan singkat.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="chip" data-m="😊">😊 Happy</button>
+        <button class="chip" data-m="🙂">🙂 Good</button>
+        <button class="chip" data-m="😐">😐 Okay</button>
+        <button class="chip" data-m="😔">😔 Sad</button>
+        <button class="chip" data-m="😫">😫 Stressed</button>
       </div>
-    </div>
-  </div>`;
-  openModal('WeekWins', html);
-  setTimeout(()=> {
-    const wrapper = document.getElementById('weeklyList');
-    wrapper.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', (e)=>{
-      const idx = parseInt(e.currentTarget.getAttribute('data-del'));
-      list.splice(idx,1); localStorage.setItem(KEY_WEEKLY, JSON.stringify(list)); closeModal(); document.getElementById('openWeekly').click();
-    }));
-    document.getElementById('addWeekly').addEventListener('click', ()=>{
-      const v = document.getElementById('newWeekly').value.trim(); if(!v) return alert('Isi target dulu'); list.push(v); localStorage.setItem(KEY_WEEKLY, JSON.stringify(list)); closeModal(); document.getElementById('openWeekly').click();
-    });
-    document.getElementById('saveWeekly').addEventListener('click', ()=>{
-      const inputs = wrapper.querySelectorAll('input[type="text"][data-i]'); const out=[]; inputs.forEach(inp => out.push(inp.value.trim())); localStorage.setItem(KEY_WEEKLY, JSON.stringify(out)); alert('Target disimpan'); closeModal();
-    });
-  },60);
-});
-// Moodly
-document.getElementById('openMood').addEventListener('click', ()=>{
-  const raw = localStorage.getItem(KEY_MOOD) || '';
-  const html = `<div style="display:flex;flex-direction:column;gap:12px">
-    <div class="small muted">Moodly — pilih mood hari ini & catatan singkat.</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="chip" data-m="😊">😊 Happy</button>
-      <button class="chip" data-m="🙂">🙂 Good</button>
-      <button class="chip" data-m="😐">😐 Okay</button>
-      <button class="chip" data-m="😔">😔 Sad</button>
-      <button class="chip" data-m="😫">😫 Stressed</button>
-    </div>
-    <textarea id="moodNote" placeholder="Catatan singkat...">${raw}</textarea>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button id="saveMood" class="btn-primary">Simpan</button>
-    </div>
-  </div>`;
-  openModal('Moodly', html);
-  setTimeout(()=>{
-    document.querySelectorAll('.chip').forEach(c=> c.addEventListener('click',(e)=>{ document.getElementById('moodNote').value = `Mood: ${e.currentTarget.getAttribute('data-m')} — `; }));
-    document.getElementById('saveMood').addEventListener('click', ()=>{ localStorage.setItem(KEY_MOOD, document.getElementById('moodNote').value); alert('Mood tersimpan'); closeModal(); });
-  },50);
-});
+      <textarea id="moodNote" placeholder="Catatan singkat...">${raw}</textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="saveMood" class="btn-primary">Simpan</button>
+      </div>
+    </div>`;
+    openModal('Moodly', html);
+    setTimeout(()=>{
+      document.querySelectorAll('.chip').forEach(c=> c.addEventListener('click',(e)=>{ $('moodNote') && ($('moodNote').value = `Mood: ${e.currentTarget.getAttribute('data-m')} — `); }));
+      safeAdd($('saveMood'),'click', ()=>{ localStorage.setItem(KEY_MOOD, $('moodNote').value); alert('Mood tersimpan'); closeModal(); });
+    },50);
+  });
 
-/* ----------------- Clock & highlight & notifications ----------------- */
-const timeEl = document.getElementById('time');
-const dateEl = document.getElementById('date');
-let lastNotifiedIdx = null;
-function updateClockAndHighlight(){
-  const now = new Date(); const h = now.getHours(); const m = now.getMinutes(); const s = now.getSeconds();
-  timeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  const localeDate = now.toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-  dateEl.textContent = localeDate.charAt(0).toUpperCase() + localeDate.slice(1);
+  /* ----------------- Clock & highlight ----------------- */
+  const timeEl = $('time');
+  const dateEl = $('date');
+  function updateClockAndHighlight(){
+    const now = new Date(); const h = now.getHours(); const m = now.getMinutes(); const s = now.getSeconds();
+    if(timeEl) timeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if(dateEl){
+      const localeDate = now.toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+      dateEl.textContent = localeDate.charAt(0).toUpperCase() + localeDate.slice(1);
+    }
 
-  document.querySelectorAll('#scheduleTable tbody tr').forEach(tr => { tr.classList.remove('current','next'); });
+    document.querySelectorAll('#scheduleTable tbody tr').forEach(tr => { tr.classList.remove('current','next'); });
 
-  const idx = schedule.findIndex(it => it.h === h);
-  if(idx !== -1){
-    setCurrent(idx, idx+1<=schedule.length-1?idx+1:null);
-    if(s === 0) notifyIfNew(idx);
-  } else {
-    if(schedule.length===0){ setCurrent(null,null); return; }
-    if(h < schedule[0].h) setCurrent(null, 0);
-    else if(h > schedule[schedule.length-1].h) setCurrent(schedule.length-1, null);
-    else {
-      let prev = null;
-      for(let i=0;i<schedule.length;i++) if(schedule[i].h < h) prev = i;
-      if(prev !== null) setCurrent(prev, prev+1<=schedule.length-1?prev+1:null);
-      else setCurrent(null,0);
+    const idx = schedule.findIndex(it => it.h === h);
+    if(idx !== -1){
+      setCurrent(idx, idx+1<=schedule.length-1?idx+1:null);
+      if(s === 0) notifyIfNew(idx);
+    } else {
+      if(schedule.length===0){ setCurrent(null,null); return; }
+      if(h < schedule[0].h) setCurrent(null, 0);
+      else if(h > schedule[schedule.length-1].h) setCurrent(schedule.length-1, null);
+      else {
+        let prev = null;
+        for(let i=0;i<schedule.length;i++) if(schedule[i].h < h) prev = i;
+        if(prev !== null) setCurrent(prev, prev+1<=schedule.length-1?prev+1:null);
+        else setCurrent(null,0);
+      }
     }
   }
-}
-function notifyIfNew(idx){
-  if(idx === lastNotifiedIdx) return;
-  lastNotifiedIdx = idx;
-  if(Notification.permission === 'granted'){
-    const text = schedule[idx].text;
-    new Notification("Waktu sekarang", { body: text, silent:false });
+  function notifyIfNew(idx){
+    if(idx === lastNotifiedIdx) return;
+    lastNotifiedIdx = idx;
+    if(Notification.permission === 'granted'){
+      const text = schedule[idx].text;
+      new Notification("Waktu sekarang", { body: text, silent:false });
+    }
   }
-}
-setInterval(updateClockAndHighlight, 1000);
+  setInterval(updateClockAndHighlight, 1000);
 
-function setCurrent(currentIdx, nextIdx){
-  if(currentIdx !== null && currentIdx !== undefined){
-    const curH = schedule[currentIdx].h;
-    const tr = document.querySelector(`#scheduleTable tbody tr[data-hour='${curH}']`);
+  function setCurrent(currentIdx, nextIdx){
+    if(currentIdx !== null && currentIdx !== undefined){
+      const curH = schedule[currentIdx].h;
+      const tr = document.querySelector(`#scheduleTable tbody tr[data-hour='${curH}']`);
+      if(tr) tr.classList.add('current');
+      $('currentTask') && ($('currentTask').textContent = schedule[currentIdx].text);
+      $('currentRange') && ($('currentRange').textContent = `${String(schedule[currentIdx].h).padStart(2,'0')}:00 - ${String((schedule[currentIdx].h+1)).padStart(2,'0')}:00`);
+    } else { $('currentTask') && ($('currentTask').textContent = '-'); $('currentRange') && ($('currentRange').textContent = ''); }
+    if(nextIdx !== null && nextIdx !== undefined){
+      const nextH = schedule[nextIdx].h;
+      const trn = document.querySelector(`#scheduleTable tbody tr[data-hour='${nextH}']`);
+      if(trn) trn.classList.add('next');
+      $('nextTask') && ($('nextTask').textContent = schedule[nextIdx].text);
+      $('nextRange') && ($('nextRange').textContent = `${String(schedule[nextIdx].h).padStart(2,'0')}:00 - ${String((schedule[nextIdx].h+1)).padStart(2,'0')}:00`);
+    } else { $('nextTask') && ($('nextTask').textContent = '-'); $('nextRange') && ($('nextRange').textContent = ''); }
+  }
+
+  /* ----------------- Prev / Next buttons ----------------- */
+  safeAdd($('prevBtn'),'click', ()=> {
+    let idx = schedule.findIndex(it => it.h === (new Date()).getHours());
+    if(idx < 0) idx = 0;
+    idx = Math.max(0, idx - 1);
+    document.querySelectorAll('#scheduleTable tbody tr').forEach(tr=> tr.classList.remove('current','next'));
+    const tr = document.querySelector(`#scheduleTable tbody tr[data-index='${idx}']`) || document.querySelector(`#scheduleTable tbody tr[data-hour='${schedule[idx].h}']`);
     if(tr) tr.classList.add('current');
-    document.getElementById('currentTask').textContent = schedule[currentIdx].text;
-    document.getElementById('currentRange').textContent = `${String(schedule[currentIdx].h).padStart(2,'0')}:00 - ${String((schedule[currentIdx].h+1)).padStart(2,'0')}:00`;
-  } else { document.getElementById('currentTask').textContent = '-'; document.getElementById('currentRange').textContent = ''; }
-  if(nextIdx !== null && nextIdx !== undefined){
-    const nextH = schedule[nextIdx].h;
-    const trn = document.querySelector(`#scheduleTable tbody tr[data-hour='${nextH}']`);
-    if(trn) trn.classList.add('next');
-    document.getElementById('nextTask').textContent = schedule[nextIdx].text;
-    document.getElementById('nextRange').textContent = `${String(schedule[nextIdx].h).padStart(2,'0')}:00 - ${String((schedule[nextIdx].h+1)).padStart(2,'0')}:00`;
-  } else { document.getElementById('nextTask').textContent = '-'; document.getElementById('nextRange').textContent = ''; }
-}
-
-/* ----------------- Day storage helpers (used earlier) ----------------- */
-function dayStorageKey(day){ return KEY_DAY_PREFIX + day; }
-function getDayModeMap(){
-  const raw = localStorage.getItem(KEY_DAYMODE);
-  if(!raw){
-    const def = {Senin:'college',Selasa:'college',Rabu:'college',Kamis:'college',Jumat:'college',Sabtu:'productive',Minggu:'holiday'};
-    localStorage.setItem(KEY_DAYMODE, JSON.stringify(def));
-    return def;
-  }
-  try{ return JSON.parse(raw); } catch(e){ return {}; }
-}
-function setDayMode(day, mode){ const map = getDayModeMap(); map[day]=mode; localStorage.setItem(KEY_DAYMODE, JSON.stringify(map)); }
-
-/* ----------------- Load app state & initial day ----------------- */
-function initializeApp(){
-  // load title
-  const storedTitle = localStorage.getItem(KEY_TITLE); if(storedTitle) titleEl.textContent = storedTitle;
-
-  // ensure day-mode map exists
-  getDayModeMap();
-
-  // current day: default to today's day name if possible
-  const today = new Date();
-  const todayName = DAYS[today.getDay()-1] || 'Senin';
-  currentDay = todayName;
-
-  // render days UI and load the day's schedule
-  renderDaysRow();
-  loadScheduleForDay(currentDay);
-  renderTable();
-  updateClockAndHighlight();
-
-  // ensure daysRow is clickable done earlier
-}
-
-/* ----------------- Load schedule for day (and set currentDayLabel) ----------------- */
-function loadScheduleForDay(day){
-  currentDay = day;
-  currentDayLabel.textContent = 'Hari: ' + day;
-  const raw = localStorage.getItem(dayStorageKey(day));
-  if(raw){
-    try{ schedule = JSON.parse(raw); }
-    catch(e){ schedule = MODE_TEMPLATES[getDayModeMap()[day] || 'productive'].map(x=>({...x})); localStorage.setItem(dayStorageKey(day), JSON.stringify(schedule)); }
-  } else {
-    const mode = getDayModeMap()[day] || 'productive';
-    schedule = MODE_TEMPLATES[mode].map(x=>({...x}));
-    localStorage.setItem(dayStorageKey(day), JSON.stringify(schedule));
-  }
-}
-
-/* ----------------- Utilities: save current day ----------------- */
-function saveCurrentDaySchedule(){ if(currentDay) localStorage.setItem(dayStorageKey(currentDay), JSON.stringify(schedule)); }
-
-/* ----------------- Manual nav prev/next (per-day list) ----------------- */
-document.getElementById('prevBtn').addEventListener('click', ()=>{
-  let idx = schedule.findIndex(it => it.h === (new Date()).getHours());
-  if(idx < 0) idx = 0;
-  idx = Math.max(0, idx - 1);
-  document.querySelectorAll('#scheduleTable tbody tr').forEach(tr=> tr.classList.remove('current','next'));
-  const tr = document.querySelector(`#scheduleTable tbody tr[data-index='${idx}']`) || document.querySelector(`#scheduleTable tbody tr[data-hour='${schedule[idx].h}']`);
-  if(tr) tr.classList.add('current');
-  document.getElementById('currentTask').textContent = schedule[idx].text; document.getElementById('currentRange').textContent = `${String(schedule[idx].h).padStart(2,'0')}:00 - ${String(schedule[idx].h+1).padStart(2,'0')}:00`;
-});
-document.getElementById('nextBtn').addEventListener('click', ()=>{
-  let idx = schedule.findIndex(it => it.h === (new Date()).getHours());
-  if(idx < 0) idx = 0;
-  idx = Math.min(schedule.length-1, idx + 1);
-  document.querySelectorAll('#scheduleTable tbody tr').forEach(tr=> tr.classList.remove('current','next'));
-  const tr = document.querySelector(`#scheduleTable tbody tr[data-index='${idx}']`) || document.querySelector(`#scheduleTable tbody tr[data-hour='${schedule[idx].h}']`);
-  if(tr) tr.classList.add('current');
-  document.getElementById('currentTask').textContent = schedule[idx].text; document.getElementById('currentRange').textContent = `${String(schedule[idx].h).padStart(2,'0')}:00 - ${String(schedule[idx].h+1).padStart(2,'0')}:00`;
-});
-
-/* ----------------- Ask Notification permission once when interact ----------------- */
-function askNotif(){ if('Notification' in window && Notification.permission==='default'){ Notification.requestPermission(); } }
-document.addEventListener('click', askNotif, {once:true});
-/* ---------------- PROFILE SYSTEM ---------------- */
-
-const photoEl = document.getElementById("profilePhoto");
-const nameEl = document.getElementById("profileName");
-const bioEl = document.getElementById("profileBio");
-const emailEl = document.getElementById("profileEmail");
-const igEl = document.getElementById("profileIG");
-const moodEl = document.getElementById("profileMood");
-const uploadInput = document.getElementById("uploadPhotoInput");
-
-// load saved data
-function loadProfile(){
-  const saved = JSON.parse(localStorage.getItem("profileData") || "{}");
-  if(saved.photo) photoEl.src = saved.photo;
-  if(saved.name) nameEl.textContent = saved.name;
-  if(saved.bio) bioEl.textContent = saved.bio;
-  if(saved.email) emailEl.textContent = saved.email;
-  if(saved.ig) igEl.textContent = saved.ig;
-  if(saved.mood) moodEl.textContent = saved.mood;
-}
-loadProfile();
-
-// save automatically when user edits text
-function autoSaveProfile(){
-  const data = {
-    photo: photoEl.src,
-    name: nameEl.textContent.trim(),
-    bio: bioEl.textContent.trim(),
-    email: emailEl.textContent.trim(),
-    ig: igEl.textContent.trim(),
-    mood: moodEl.textContent.trim(),
-  };
-  localStorage.setItem("profileData", JSON.stringify(data));
-}
-
-[nameEl, bioEl, emailEl, igEl, moodEl].forEach(el=>{
-  el.addEventListener("input", autoSaveProfile);
-});
-
-// upload & save profile photo
-uploadInput.addEventListener("change", function(){
-  const file = this.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e){
-    photoEl.src = e.target.result;
-    autoSaveProfile();
-  }
-  reader.readAsDataURL(file);
-});
-/* ----------- TOMBOL KEMBALI KE LANDING ----------- */
-
-document.getElementById("backToLanding").addEventListener("click", () => {
-  document.getElementById("app").classList.remove("visible");
-  document.getElementById("app").style.display = "none";
-  document.getElementById("landing").style.display = "flex";
-});
-/* ===== SKINCARE PAGE LOGIC ===== */
-
-const skincarePage = document.getElementById("skincarePage");
-const backFromSkincare = document.getElementById("backFromSkincare");
-
-// Routine arrays
-let amRoutine = JSON.parse(localStorage.getItem("amRoutine") || `["Step 1","Step 2","Step 3"]`);
-let pmRoutine = JSON.parse(localStorage.getItem("pmRoutine") || `["Step 1","Step 2","Step 3"]`);
-
-function saveSkincare(){
-    localStorage.setItem("amRoutine", JSON.stringify(amRoutine));
-    localStorage.setItem("pmRoutine", JSON.stringify(pmRoutine));
-}
-
-function renderRoutine(list, containerId, type){
-    const container = document.getElementById(containerId);
-    container.innerHTML = "";
-
-    list.forEach((step, index)=>{
-        const row = document.createElement("div");
-        row.style.display = "flex";
-        row.style.gap = "8px";
-        row.style.marginBottom = "8px";
-
-        row.innerHTML = `
-            <input type="text" value="${step}" data-edit="${index}" data-type="${type}" style="flex:1; padding:8px;">
-            <button class="btn" data-del="${index}" data-type="${type}">Hapus</button>
-        `;
-
-        container.appendChild(row);
-    });
-
-    container.querySelectorAll('[data-edit]').forEach(input=>{
-        input.addEventListener("input", ()=>{
-            const i = input.dataset.edit;
-            const t = input.dataset.type;
-            if(t === "am") amRoutine[i] = input.value;
-            else pmRoutine[i] = input.value;
-            saveSkincare();
-        });
-    });
-
-    container.querySelectorAll('[data-del]').forEach(btn=>{
-        btn.addEventListener("click", ()=>{
-            const i = btn.dataset.del;
-            const t = btn.dataset.type;
-            if(t === "am") amRoutine.splice(i,1);
-            else pmRoutine.splice(i,1);
-            saveSkincare();
-            loadSkincare();
-        });
-    });
-}
-
-function loadSkincare(){
-    renderRoutine(amRoutine, "amList", "am");
-    renderRoutine(pmRoutine, "pmList", "pm");
-}
-
-document.getElementById("addAmStep").addEventListener("click", ()=>{
-    const v = document.getElementById("amInput").value.trim();
-    if(!v) return;
-    amRoutine.push(v);
-    saveSkincare();
-    loadSkincare();
-    document.getElementById("amInput").value = "";
-});
-document.getElementById("addPmStep").addEventListener("click", ()=>{
-    const v = document.getElementById("pmInput").value.trim();
-    if(!v) return;
-    pmRoutine.push(v);
-    saveSkincare();
-    loadSkincare();
-    document.getElementById("pmInput").value = "";
-});
-
-/* OPEN & CLOSE SKINCARE PAGE - safer version */
-const skincareBtnEl = document.getElementById("skincareBtn");
-const skincarePageEl = document.getElementById("skincarePage");
-const backFromSkincareEl = document.getElementById("backFromSkincare");
-
-function showSkincarePage(){
-  // hide landing & app
-  landing.style.display = 'none';
-  app.style.display = 'none';
-
-  // show skincare page
-  skincarePageEl.style.display = 'block';
-  // allow repaint then fade in
-  requestAnimationFrame(()=> {
-    skincarePageEl.style.opacity = 1;
-    skincarePageEl.style.transform = 'translateY(0)';
+    if(schedule[idx]){ $('currentTask') && ($('currentTask').textContent = schedule[idx].text); $('currentRange') && ($('currentRange').textContent = `${String(schedule[idx].h).padStart(2,'0')}:00 - ${String(schedule[idx].h+1).padStart(2,'0')}:00`); }
   });
-  // render content
-  try { loadSkincare(); }
-  catch(e){ console.error('loadSkincare error', e); }
-}
+  safeAdd($('nextBtn'),'click', ()=> {
+    let idx = schedule.findIndex(it => it.h === (new Date()).getHours());
+    if(idx < 0) idx = 0;
+    idx = Math.min(schedule.length-1, idx + 1);
+    document.querySelectorAll('#scheduleTable tbody tr').forEach(tr=> tr.classList.remove('current','next'));
+    const tr = document.querySelector(`#scheduleTable tbody tr[data-index='${idx}']`) || document.querySelector(`#scheduleTable tbody tr[data-hour='${schedule[idx].h}']`);
+    if(tr) tr.classList.add('current');
+    if(schedule[idx]){ $('currentTask') && ($('currentTask').textContent = schedule[idx].text); $('currentRange') && ($('currentRange').textContent = `${String(schedule[idx].h).padStart(2,'0')}:00 - ${String(schedule[idx].h+1).padStart(2,'0')}:00`); }
+  });
 
-function hideSkincarePage(){
-  skincarePageEl.style.opacity = 0;
-  skincarePageEl.style.transform = 'translateY(8px)';
-  setTimeout(()=>{
-    skincarePageEl.style.display = 'none';
-    // go back to landing (if you prefer opening app instead, replace accordingly)
-    landing.style.display = 'flex';
-  }, 260);
-}
+  /* ----------------- Profile system ----------------- */
+  const photoEl = $('profilePhoto');
+  const nameEl = $('profileName');
+  const bioEl = $('profileBio');
+  const emailEl = $('profileEmail');
+  const igEl = $('profileIG');
+  const moodEl = $('profileMood');
+  const uploadInput = $('uploadPhotoInput');
 
-skincareBtnEl.addEventListener('click', showSkincarePage);
-backFromSkincareEl.addEventListener('click', hideSkincarePage);
+  function loadProfile(){
+    const saved = JSON.parse(localStorage.getItem("profileData") || "{}");
+    if(saved.photo) photoEl && (photoEl.src = saved.photo);
+    if(saved.name) nameEl && (nameEl.textContent = saved.name);
+    if(saved.bio) bioEl && (bioEl.textContent = saved.bio);
+    if(saved.email) emailEl && (emailEl.textContent = saved.email);
+    if(saved.ig) igEl && (igEl.textContent = saved.ig);
+    if(saved.mood) moodEl && (moodEl.textContent = saved.mood);
+  }
+  loadProfile();
 
+  function autoSaveProfile(){
+    const data = {
+      photo: photoEl ? photoEl.src : '',
+      name: nameEl ? nameEl.textContent.trim() : '',
+      bio: bioEl ? bioEl.textContent.trim() : '',
+      email: emailEl ? emailEl.textContent.trim() : '',
+      ig: igEl ? igEl.textContent.trim() : '',
+      mood: moodEl ? moodEl.textContent.trim() : '',
+    };
+    localStorage.setItem("profileData", JSON.stringify(data));
+  }
+  [nameEl, bioEl, emailEl, igEl, moodEl].forEach(el=>{ if(el) el.addEventListener("input", autoSaveProfile); });
+
+  if(uploadInput){
+    uploadInput.addEventListener("change", function(){
+      const file = this.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e){
+        photoEl && (photoEl.src = e.target.result);
+        autoSaveProfile();
+      }
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* ----------------- Skincare (separate page) ----------------- */
+  const skincarePageEl = $('skincarePage');
+  const backFromSkincareEl = $('backFromSkincare');
+
+  let amRoutine = JSON.parse(localStorage.getItem("amRoutine") || '["Cleansing","Toner","Moisturizer","Sunscreen"]');
+  let pmRoutine = JSON.parse(localStorage.getItem("pmRoutine") || '["Double cleanse","Serum","Moisturizer","Eye cream"]');
+
+  function saveSkincare(){ localStorage.setItem("amRoutine", JSON.stringify(amRoutine)); localStorage.setItem("pmRoutine", JSON.stringify(pmRoutine)); }
+
+  function renderRoutine(list, containerId, type){
+    const container = $(containerId);
+    if(!container) return;
+    container.innerHTML = '';
+    list.forEach((step, index)=>{
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.gap = '8px';
+      row.style.marginBottom = '8px';
+      row.innerHTML = `<input type="text" value="${step}" data-edit="${index}" data-type="${type}" style="flex:1; padding:8px;">
+                       <button class="btn" data-del="${index}" data-type="${type}">Hapus</button>`;
+      container.appendChild(row);
+    });
+    container.querySelectorAll('[data-edit]').forEach(input=>{
+      input.addEventListener('input', ()=>{
+        const i = input.dataset.edit, t = input.dataset.type;
+        if(t === 'am') amRoutine[i] = input.value;
+        else pmRoutine[i] = input.value;
+        saveSkincare();
+      });
+    });
+    container.querySelectorAll('[data-del]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const i = parseInt(btn.dataset.del), t = btn.dataset.type;
+        if(t === 'am') amRoutine.splice(i,1); else pmRoutine.splice(i,1);
+        saveSkincare();
+        loadSkincare();
+      });
+    });
+  }
+  function loadSkincare(){ renderRoutine(amRoutine,'amList','am'); renderRoutine(pmRoutine,'pmList','pm'); }
+
+  safeAdd($('addAmStep'),'click', ()=>{
+    const v = ($('amInput') && $('amInput').value || '').trim(); if(!v) return;
+    amRoutine.push(v); saveSkincare(); loadSkincare(); if($('amInput')) $('amInput').value='';
+  });
+  safeAdd($('addPmStep'),'click', ()=>{
+    const v = ($('pmInput') && $('pmInput').value || '').trim(); if(!v) return;
+    pmRoutine.push(v); saveSkincare(); loadSkincare(); if($('pmInput')) $('pmInput').value='';
+  });
+
+  function showSkincarePage(){
+    if(landing) landing.style.display = 'none';
+    if(app) app.style.display = 'none';
+    if(!skincarePageEl) return;
+    skincarePageEl.style.display = 'block';
+    requestAnimationFrame(()=> {
+      skincarePageEl.style.opacity = 1;
+      skincarePageEl.style.transform = 'translateY(0)';
+    });
+    try{ loadSkincare(); } catch(e){ console.error('loadSkincare error', e); }
+  }
+  function hideSkincarePage(){
+    if(!skincarePageEl) return;
+    skincarePageEl.style.opacity = 0;
+    skincarePageEl.style.transform = 'translateY(8px)';
+    setTimeout(()=>{ if(skincarePageEl) skincarePageEl.style.display='none'; if(landing) landing.style.display='flex'; }, 260);
+  }
+  safeAdd(skincareBtn,'click', showSkincarePage);
+  safeAdd(backFromSkincareEl,'click', hideSkincarePage);
+
+  /* ----------------- Init app ----------------- */
+  function initializeApp(){
+    // load title
+    const storedTitle = localStorage.getItem(KEY_TITLE); if(storedTitle && titleEl) titleEl.textContent = storedTitle;
+
+    // make sure mapping exists
+    getDayModeMap();
+
+    // pick today's day name
+    const today = new Date();
+    const todayName = DAYS[today.getDay()-1] || 'Senin';
+    currentDay = todayName;
+
+    renderDaysRow();
+    loadScheduleForDay(currentDay);
+    renderTable();
+    updateClockAndHighlight();
+
+    // ask for notifications on first interaction
+    function askNotif(){ if('Notification' in window && Notification.permission==='default'){ Notification.requestPermission(); } }
+    document.addEventListener('click', askNotif, {once:true});
+  }
+  safeAdd(enterBtn,'click', ()=> { if(landing) landing.style.display = 'none'; if(app) { app.classList.add('visible'); app.style.display = 'block'; } initializeApp(); });
+
+  // back to landing
+  safeAdd($('backToLanding'),'click', () => {
+    if(app){ app.classList.remove('visible'); app.style.display = 'none'; }
+    if(landing) landing.style.display = 'flex';
+  });
+
+  // initialize (do not auto-enter — user clicks Masuk)
+  loadSkincare(); // pre-render skincare lists for quick debug
+
+  // expose debug helpers
+  window._debug_showSkincare = showSkincarePage;
+  window._debug_hideSkincare = hideSkincarePage;
+});
 </script>
 </body>
 </html>
